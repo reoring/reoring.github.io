@@ -4,7 +4,7 @@
   <title><![CDATA[Reoring Blog]]></title>
   <link href="http://reoring.github.io/atom.xml" rel="self"/>
   <link href="http://reoring.github.io/"/>
-  <updated>2014-06-22T17:00:06+09:00</updated>
+  <updated>2014-06-22T17:22:29+09:00</updated>
   <id>http://reoring.github.io/</id>
   <author>
     <name><![CDATA[reoring]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Test]]></title>
+    <title type="html"><![CDATA[test]]></title>
     <link href="http://reoring.github.io/blog/2014/06/22/test/"/>
     <updated>2014-06-22T16:54:04+09:00</updated>
     <id>http://reoring.github.io/blog/2014/06/22/test</id>
