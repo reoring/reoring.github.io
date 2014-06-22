@@ -1,0 +1,54 @@
+---
+layout: post
+title: "Octpressを初めてみました"
+date: 2013-07-19 19:16
+comments: true
+categories: 
+---
+
+BlogをOctpressで書き始めてみる
+
+http://octopress.org/
+
+## 記事作成
+
+```bash
+bundle exec rake new_post
+```
+
+## プレビュー
+
+```bash
+bundle exec rake preview
+```
+
+## デプロイ
+
+```bash
+bundle exec rake deploy
+```
+
+## コメント欄をつける
+
+_config.ymlに下記行を追加
+
+```yaml
+disqus_short_name: reoring
+```
+
+
+## はてなブックマークをシェア部分に追加
+
+{% raw %}
+```html
+ <div style="float:left">
+     <a href="http://b.hatena.ne.jp/entry/{{ page.url }}" class="hatena-bookmark-button" data-hatena-bookmark-layout="standard" title="このエントリーをはてなブックマークに追加"><img src="http://b.st-hatena.com/images/entry-button/button-only.gif" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a>
+   <script type="text/javascript" src="http://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+ </div>
+```
+{% endraw %}
+
+
+## Octpressのテンプレートエンジンのプレースホルダーをエスケープする
+
+Octpressでは、{% raw %} {{ page.url }} {% endraw %} といった変数が使えるのですが、これそのものを記事にしたいときは、"{% raw %}"でエスケープします。
