@@ -4,7 +4,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>test - Reoring Blog</title>
+  <title>OctopressのデザインをOctostrap3にしてみた - Reoring Blog</title>
   <meta name="author" content="reoring">
 
   
@@ -27,6 +27,18 @@
 
   <script src="/javascripts/libs/jquery/jquery-2.0.3.min.js"></script>
   
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-42927703-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
 
 </head>
 
@@ -104,14 +116,59 @@
     
     
     <h1 class="entry-title">
-        Test
+        OctopressのデザインをOctostrap3にしてみた
         
     </h1>
     
   </header>
 
 
-<div class="entry-content clearfix">
+<div class="entry-content clearfix"><p>Octostrap3というTwitter Bootstrapで作成されたテーマがシンプルで気にいったので適応してみる。</p>
+
+<figure class='code'><figcaption><span>setup</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nb">cd</span> <span class="nv">$OCTPRESS_HOME</span>
+</span><span class='line'>git clone https://github.com/kAworu/octostrap3 .themes/octostrap3
+</span><span class='line'>rake <span class="s1">&#39;install[octostrap3]&#39;</span>
+</span><span class='line'>rake generate
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>rake generateすると下記のエラーが発生した。</p>
+
+<!--more-->
+
+
+
+
+<figure class='code'><figcaption><span>error</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>## Generating Site with Jekyll
+</span><span class='line'>unchanged sass/screen.scss
+</span><span class='line'>Configuration file: /Users/reoring/git/reoring/octopress/_config.yml
+</span><span class='line'>            Source: source
+</span><span class='line'>       Destination: public
+</span><span class='line'>      Generating...
+</span><span class='line'>  Liquid Exception: Included file &#39;_includes/customizer-variables.html&#39; not found in assets/bootstrap/docs/customize.html
+</span><span class='line'>jekyll 2.0.3 | Error:  Included file &#39;_includes/customizer-variables.html&#39; not found
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>customizer-variables.htmlが無いということらしい。<code>touch source/_includes/customizer-variables.html</code> としたらエラーはなくなった。このHTMLはなんなんだろう? どっからincludeしてるんだろう。</p>
+
+<p><code>source/assets/bootstrap/docs/customize.html</code> このファイルだった。Gruntを実行すれば生成されるっぽい。</p>
+
+<p><code>source/_includes/ads.html</code> このファイルも同様にエラーとなるのでtouchしておく。</p>
+
+<p>これで動作した。</p>
 </div>
 
 
@@ -138,14 +195,23 @@
 <span class="glyphicon glyphicon-calendar"></span> <time datetime="2014-06-22T16:54:04+09:00" pubdate data-updated="true">Jun 22<sup>nd</sup>, 2014</time>
           
 
+<span class="glyphicon glyphicon-tags"></span>&nbsp;
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/octopress/'>octopress</a>
+  
+</span>
+
 
         </p>
         
           <div class="sharing">
   
-  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://reoring.github.io/blog/2014/06/22/test/" data-via="" data-counturl="http://reoring.github.io/blog/2014/06/22/test/" >Tweet</a>
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://reoring.github.io/blog/2014/06/22/test/" data-via="reoring" data-counturl="http://reoring.github.io/blog/2014/06/22/test/" >Tweet</a>
   
   
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
   
 </div>
 
@@ -161,19 +227,30 @@
       </footer>
     </article>
     
+      <section>
+        <h1>Comments</h1>
+        <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+      </section>
+    
   </div>
 
   
   <aside class="sidebar col-md-3">
     
-      <section class="panel panel-default">
+       <section>
+   <h1>Twitter</h1>
+   <a class="twitter-timeline" href="https://twitter.com/reoring" data-widget-id="480676851098996736">@reoring からのツイート</a>
+   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+ </section>
+<section class="panel panel-default">
   <div class="panel-heading">
     <h3 class="panel-title">Recent Posts</h3>
   </div>
   
   <div id="recent_posts" class="list-group">
     
-    <a class="list-group-item active" href="/blog/2014/06/22/test/">Test</a>
+    <a class="list-group-item active" href="/blog/2014/06/22/test/">OctopressのデザインをOctostrap3にしてみた</a>
     
     <a class="list-group-item " href="/blog/2013/08/03/packer-intro/">Packerを使ってOSの基礎イメージを作る</a>
     
@@ -184,6 +261,39 @@
     <a class="list-group-item " href="/blog/2013/07/19/nfs-cookbook/">NFS CookbookをWheezyに対応させる</a>
     
   </div>
+</section>
+
+<section class="panel panel-default clearfix">
+  <div class="panel-heading">
+      <h3 class="panel-title">GitHub Repos</h3>
+  </div>
+  <div class="list-group" id="gh_repos">
+    <p class="loading">Status updating...</p>
+  </div>
+  
+    <div class="gh-profile-link pull-right text-muted">
+      <a href="https://github.com/reoring">@reoring</a> on GitHub
+    </div>
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'reoring',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
 </section>
 
 
@@ -214,7 +324,32 @@
 <script src="/javascripts/modernizr-2.0.js"></script>
 
 
+<script type="text/javascript">
+      var disqus_shortname = 'reoring';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://reoring.github.io/blog/2014/06/22/test/';
+        var disqus_url = 'http://reoring.github.io/blog/2014/06/22/test/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
 
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
 
 
 

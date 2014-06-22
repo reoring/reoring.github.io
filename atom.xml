@@ -4,7 +4,7 @@
   <title><![CDATA[Reoring Blog]]></title>
   <link href="http://reoring.github.io/atom.xml" rel="self"/>
   <link href="http://reoring.github.io/"/>
-  <updated>2014-06-22T17:22:29+09:00</updated>
+  <updated>2014-06-22T21:10:11+09:00</updated>
   <id>http://reoring.github.io/</id>
   <author>
     <name><![CDATA[reoring]]></name>
@@ -14,11 +14,56 @@
 
   
   <entry>
-    <title type="html"><![CDATA[test]]></title>
+    <title type="html"><![CDATA[OctopressのデザインをOctostrap3にしてみた]]></title>
     <link href="http://reoring.github.io/blog/2014/06/22/test/"/>
     <updated>2014-06-22T16:54:04+09:00</updated>
     <id>http://reoring.github.io/blog/2014/06/22/test</id>
-    <content type="html"><![CDATA[
+    <content type="html"><![CDATA[<p>Octostrap3というTwitter Bootstrapで作成されたテーマがシンプルで気にいったので適応してみる。</p>
+
+<figure class='code'><figcaption><span>setup</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nb">cd</span> <span class="nv">$OCTPRESS_HOME</span>
+</span><span class='line'>git clone https://github.com/kAworu/octostrap3 .themes/octostrap3
+</span><span class='line'>rake <span class="s1">&#39;install[octostrap3]&#39;</span>
+</span><span class='line'>rake generate
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>rake generateすると下記のエラーが発生した。</p>
+
+<!--more-->
+
+
+
+
+<figure class='code'><figcaption><span>error</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='text'><span class='line'>## Generating Site with Jekyll
+</span><span class='line'>unchanged sass/screen.scss
+</span><span class='line'>Configuration file: /Users/reoring/git/reoring/octopress/_config.yml
+</span><span class='line'>            Source: source
+</span><span class='line'>       Destination: public
+</span><span class='line'>      Generating...
+</span><span class='line'>  Liquid Exception: Included file &#39;_includes/customizer-variables.html&#39; not found in assets/bootstrap/docs/customize.html
+</span><span class='line'>jekyll 2.0.3 | Error:  Included file &#39;_includes/customizer-variables.html&#39; not found
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>customizer-variables.htmlが無いということらしい。<code>touch source/_includes/customizer-variables.html</code> としたらエラーはなくなった。このHTMLはなんなんだろう? どっからincludeしてるんだろう。</p>
+
+<p><code>source/assets/bootstrap/docs/customize.html</code> このファイルだった。Gruntを実行すれば生成されるっぽい。</p>
+
+<p><code>source/_includes/ads.html</code> このファイルも同様にエラーとなるのでtouchしておく。</p>
+
+<p>これで動作した。</p>
 ]]></content>
   </entry>
   
