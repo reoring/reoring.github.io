@@ -1,0 +1,404 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Packerを使ってOSの基礎イメージを作る - My Octopress Blog</title>
+  <meta name="author" content="Your Name">
+
+  
+  <meta name="description" content="PackerはOSの基礎イメージを様々な環境向けに構築できるコマンドラインツール。
+Vagrantを作成している、hashicorp社が開発しているみたい。 テンプレートというJSONファイルを書き、それを基にEC2のAMIイメージや、Digital Oceanに基礎イメージを構築してくれる、 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://reoring.github.io/blog/2013/08/03/packer-intro">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="My Octopress Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">My Octopress Blog</a></h1>
+  
+    <h2>A blogging framework for hackers.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:reoring.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Packerを使ってOSの基礎イメージを作る</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-03T03:44:00+09:00" pubdate data-updated="true">Aug 3<sup>rd</sup>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>PackerはOSの基礎イメージを様々な環境向けに構築できるコマンドラインツール。
+Vagrantを作成している、hashicorp社が開発しているみたい。</p>
+
+<p>テンプレートというJSONファイルを書き、それを基にEC2のAMIイメージや、Digital Oceanに基礎イメージを構築してくれる、もちろんVagrantのBoxファイルも作成できる。</p>
+
+<p>Vagrantの基礎イメージ構築にはVeeWeeなどを使っていたが、PackerであればVagrant以外のプロバイダにも同様に構築ができる。</p>
+
+<p>PackerはChefやPuppetのような構成管理ソフトウェアを置き換えるようなものではなく、それらのが動作するための基礎イメージをシンプルな手順で構築できるものらしい。</p>
+
+<p>Packerは各プラットフォーム向けにバイナリを提供しているので、ダウンロードして適当なディレクトリに配置する。PATHを通しておくと便利。</p>
+
+<p><a href="http://www.packer.io/downloads.html">http://www.packer.io/downloads.html</a></p>
+
+<p>早速AWSにイメージを作ってみる。</p>
+
+<p>まずはJSONファイルを書く</p>
+
+<h2>example.json</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;builders&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;amazon-ebs&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;access_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのアクセスキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのシークレットキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;region&quot;</span><span class="p">:</span> <span class="s2">&quot;us-east-1&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;source_ami&quot;</span><span class="p">:</span> <span class="s2">&quot;ami-de0d9eb7&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;instance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;t1.micro&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ssh_username&quot;</span><span class="p">:</span> <span class="s2">&quot;ubuntu&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ami_name&quot;</span><span class="p">:</span> <span class="s2">&quot;packer-example &quot;</span>
+</span><span class='line'>  <span class="p">}]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>つぎに、JSONが正しいかを確認する。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">packer</span> <span class="err">validate</span> <span class="err">example.json</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Template validated successfully.と表示されれば問題ない。</p>
+
+<h2>構築を開始</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">packer</span> <span class="err">build</span> <span class="err">example.json</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>正常に構築されると、構築されたAMIのIDを教えてくれる。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">mazon-ebs</span> <span class="err">output</span> <span class="err">will</span> <span class="err">be</span> <span class="err">in</span> <span class="err">this</span> <span class="err">color.</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Creating</span> <span class="err">temporary</span> <span class="err">keypair</span> <span class="err">for</span> <span class="err">this</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Creating</span> <span class="err">temporary</span> <span class="err">security</span> <span class="err">group</span> <span class="err">for</span> <span class="err">this</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Authorizing</span> <span class="err">SSH</span> <span class="err">access</span> <span class="err">on</span> <span class="err">the</span> <span class="err">temporary</span> <span class="err">security</span> <span class="err">group...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Launching</span> <span class="err">a</span> <span class="err">source</span> <span class="err">AWS</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">instance</span> <span class="err">(i</span><span class="mi">-7</span><span class="err">c</span><span class="mi">70</span><span class="err">b</span><span class="mi">010</span><span class="err">)</span> <span class="err">to</span> <span class="err">become</span> <span class="err">ready...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">SSH</span> <span class="err">to</span> <span class="err">become</span> <span class="err">available...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Connected</span> <span class="err">to</span> <span class="err">SSH!</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Stopping</span> <span class="err">the</span> <span class="err">source</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">the</span> <span class="err">instance</span> <span class="err">to</span> <span class="err">stop...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Creating</span> <span class="err">the</span> <span class="err">AMI:</span> <span class="err">packer-example</span> <span class="mi">1375470030</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">AMI:</span> <span class="err">ami-c</span><span class="mi">21357</span><span class="err">ab</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">AMI</span> <span class="err">to</span> <span class="err">become</span> <span class="err">ready...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Terminating</span> <span class="err">the</span> <span class="err">source</span> <span class="err">AWS</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Deleting</span> <span class="err">temporary</span> <span class="err">security</span> <span class="err">group...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Deleting</span> <span class="err">temporary</span> <span class="err">keypair...</span>
+</span><span class='line'><span class="err">Build</span> <span class="err">&#39;amazon-ebs&#39;</span> <span class="err">finished.</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">Builds</span> <span class="err">finished.</span> <span class="err">The</span> <span class="err">artifacts</span> <span class="err">of</span> <span class="err">successful</span> <span class="err">builds</span> <span class="err">are:</span>
+</span><span class='line'><span class="err">--&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">AMIs</span> <span class="err">were</span> <span class="err">created:</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">us-east</span><span class="mi">-1</span><span class="err">:</span> <span class="err">ami-c</span><span class="mi">21357</span><span class="err">ab</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>VagrantのBoxを作成する</h2>
+
+<p>Packerには、post-processorという仕組みが用意されていて、構築後の処理が行えるようだ。
+標準で提供されている、vagrant用のpost-processorを使用すると、構築されたAMIイメージを立ち上げるためのVagrant Boxファイルが作成できる。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;builders&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;amazon-ebs&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;access_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのアクセスキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのシークレットキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;region&quot;</span><span class="p">:</span> <span class="s2">&quot;us-east-1&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;source_ami&quot;</span><span class="p">:</span> <span class="s2">&quot;ami-de0d9eb7&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;instance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;t1.micro&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ssh_username&quot;</span><span class="p">:</span> <span class="s2">&quot;ubuntu&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ami_name&quot;</span><span class="p">:</span> <span class="s2">&quot;packer-example &quot;</span>
+</span><span class='line'>  <span class="p">}],</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&quot;post-processors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;vagrant&quot;</span><span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>これを実行すると、boxファイルができがるので、vagrant box add で追加する。</p>
+
+<p>その後、vagrant init で取り込んだBox名を指定して実行する。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">#</span> <span class="err">-*-</span> <span class="err">mode:</span> <span class="err">ruby</span> <span class="err">-*-</span>
+</span><span class='line'><span class="err">#</span> <span class="err">vi:</span> <span class="err">set</span> <span class="err">ft=ruby</span> <span class="err">:</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">Vagrant.configure(</span><span class="s2">&quot;2&quot;</span><span class="err">)</span> <span class="err">do</span> <span class="err">|config|</span>
+</span><span class='line'>    <span class="err">config.vm.box</span> <span class="err">=</span> <span class="s2">&quot;packer_test&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="err">config.vm.provider</span> <span class="err">:aws</span> <span class="err">do</span> <span class="err">|aws,</span> <span class="err">override|</span>
+</span><span class='line'>        <span class="err">aws.access_key_id</span> <span class="err">=</span> <span class="s2">&quot;AWSのアクセスキー&quot;</span>
+</span><span class='line'>        <span class="err">aws.secret_access_key</span> <span class="err">=</span> <span class="s2">&quot;AWSのシークレットキー&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="err">aws.keypair_name</span> <span class="err">=</span> <span class="s2">&quot;packer&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="err">override.ssh.username</span> <span class="err">=</span> <span class="s2">&quot;ubuntu&quot;</span>
+</span><span class='line'>        <span class="err">override.ssh.private_key_path</span> <span class="err">=</span> <span class="s2">&quot;~/packer_test/packer.pem&quot;</span>
+</span><span class='line'>    <span class="err">end</span>
+</span><span class='line'><span class="err">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>そして、vagrant up &mdash;provider=aws を実行すると、Packerで構築した環境が立ち上がる。</p>
+
+<p>あとはいつものようにvagrant sshすれば、ログインできる。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Your Name</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-03T03:44:00+09:00" pubdate data-updated="true">Aug 3<sup>rd</sup>, 2013</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://reoring.github.io/blog/2013/08/03/packer-intro/" data-via="" data-counturl="http://reoring.github.io/blog/2013/08/03/packer-intro/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/07/20/chef-vagrant-handson/" title="Previous Post: Chef Vagrant Handson">&laquo; Chef Vagrant Handson</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/06/22/test/" title="Next Post: test">test &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/06/22/test/">Test</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/08/03/packer-intro/">Packerを使ってOSの基礎イメージを作る</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/07/20/chef-vagrant-handson/">Chef Vagrant Handson</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/07/20/veewee-wheezy/">Vagrant Wheezy BoxをVeeWeeで作る</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/07/19/nfs-cookbook/">NFS CookbookをWheezyに対応させる</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - Your Name -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

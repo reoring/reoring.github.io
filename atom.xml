@@ -4,7 +4,7 @@
   <title><![CDATA[My Octopress Blog]]></title>
   <link href="http://reoring.github.io/atom.xml" rel="self"/>
   <link href="http://reoring.github.io/"/>
-  <updated>2014-06-22T16:54:29+09:00</updated>
+  <updated>2014-06-22T16:57:40+09:00</updated>
   <id>http://reoring.github.io/</id>
   <author>
     <name><![CDATA[Your Name]]></name>
@@ -19,6 +19,777 @@
     <updated>2014-06-22T16:54:04+09:00</updated>
     <id>http://reoring.github.io/blog/2014/06/22/test</id>
     <content type="html"><![CDATA[
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Packerを使ってOSの基礎イメージを作る]]></title>
+    <link href="http://reoring.github.io/blog/2013/08/03/packer-intro/"/>
+    <updated>2013-08-03T03:44:00+09:00</updated>
+    <id>http://reoring.github.io/blog/2013/08/03/packer-intro</id>
+    <content type="html"><![CDATA[<p>PackerはOSの基礎イメージを様々な環境向けに構築できるコマンドラインツール。
+Vagrantを作成している、hashicorp社が開発しているみたい。</p>
+
+<p>テンプレートというJSONファイルを書き、それを基にEC2のAMIイメージや、Digital Oceanに基礎イメージを構築してくれる、もちろんVagrantのBoxファイルも作成できる。</p>
+
+<p>Vagrantの基礎イメージ構築にはVeeWeeなどを使っていたが、PackerであればVagrant以外のプロバイダにも同様に構築ができる。</p>
+
+<p>PackerはChefやPuppetのような構成管理ソフトウェアを置き換えるようなものではなく、それらのが動作するための基礎イメージをシンプルな手順で構築できるものらしい。</p>
+
+<p>Packerは各プラットフォーム向けにバイナリを提供しているので、ダウンロードして適当なディレクトリに配置する。PATHを通しておくと便利。</p>
+
+<p><a href="http://www.packer.io/downloads.html">http://www.packer.io/downloads.html</a></p>
+
+<p>早速AWSにイメージを作ってみる。</p>
+
+<p>まずはJSONファイルを書く</p>
+
+<h2>example.json</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;builders&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;amazon-ebs&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;access_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのアクセスキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのシークレットキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;region&quot;</span><span class="p">:</span> <span class="s2">&quot;us-east-1&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;source_ami&quot;</span><span class="p">:</span> <span class="s2">&quot;ami-de0d9eb7&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;instance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;t1.micro&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ssh_username&quot;</span><span class="p">:</span> <span class="s2">&quot;ubuntu&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ami_name&quot;</span><span class="p">:</span> <span class="s2">&quot;packer-example &quot;</span>
+</span><span class='line'>  <span class="p">}]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>つぎに、JSONが正しいかを確認する。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">packer</span> <span class="err">validate</span> <span class="err">example.json</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Template validated successfully.と表示されれば問題ない。</p>
+
+<h2>構築を開始</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">packer</span> <span class="err">build</span> <span class="err">example.json</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>正常に構築されると、構築されたAMIのIDを教えてくれる。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">mazon-ebs</span> <span class="err">output</span> <span class="err">will</span> <span class="err">be</span> <span class="err">in</span> <span class="err">this</span> <span class="err">color.</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Creating</span> <span class="err">temporary</span> <span class="err">keypair</span> <span class="err">for</span> <span class="err">this</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Creating</span> <span class="err">temporary</span> <span class="err">security</span> <span class="err">group</span> <span class="err">for</span> <span class="err">this</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Authorizing</span> <span class="err">SSH</span> <span class="err">access</span> <span class="err">on</span> <span class="err">the</span> <span class="err">temporary</span> <span class="err">security</span> <span class="err">group...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Launching</span> <span class="err">a</span> <span class="err">source</span> <span class="err">AWS</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">instance</span> <span class="err">(i</span><span class="mi">-7</span><span class="err">c</span><span class="mi">70</span><span class="err">b</span><span class="mi">010</span><span class="err">)</span> <span class="err">to</span> <span class="err">become</span> <span class="err">ready...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">SSH</span> <span class="err">to</span> <span class="err">become</span> <span class="err">available...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Connected</span> <span class="err">to</span> <span class="err">SSH!</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Stopping</span> <span class="err">the</span> <span class="err">source</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">the</span> <span class="err">instance</span> <span class="err">to</span> <span class="err">stop...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Creating</span> <span class="err">the</span> <span class="err">AMI:</span> <span class="err">packer-example</span> <span class="mi">1375470030</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">AMI:</span> <span class="err">ami-c</span><span class="mi">21357</span><span class="err">ab</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Waiting</span> <span class="err">for</span> <span class="err">AMI</span> <span class="err">to</span> <span class="err">become</span> <span class="err">ready...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Terminating</span> <span class="err">the</span> <span class="err">source</span> <span class="err">AWS</span> <span class="err">instance...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Deleting</span> <span class="err">temporary</span> <span class="err">security</span> <span class="err">group...</span>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">Deleting</span> <span class="err">temporary</span> <span class="err">keypair...</span>
+</span><span class='line'><span class="err">Build</span> <span class="err">&#39;amazon-ebs&#39;</span> <span class="err">finished.</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">==&gt;</span> <span class="err">Builds</span> <span class="err">finished.</span> <span class="err">The</span> <span class="err">artifacts</span> <span class="err">of</span> <span class="err">successful</span> <span class="err">builds</span> <span class="err">are:</span>
+</span><span class='line'><span class="err">--&gt;</span> <span class="err">amazon-ebs:</span> <span class="err">AMIs</span> <span class="err">were</span> <span class="err">created:</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">us-east</span><span class="mi">-1</span><span class="err">:</span> <span class="err">ami-c</span><span class="mi">21357</span><span class="err">ab</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>VagrantのBoxを作成する</h2>
+
+<p>Packerには、post-processorという仕組みが用意されていて、構築後の処理が行えるようだ。
+標準で提供されている、vagrant用のpost-processorを使用すると、構築されたAMIイメージを立ち上げるためのVagrant Boxファイルが作成できる。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;builders&quot;</span><span class="p">:</span> <span class="p">[{</span>
+</span><span class='line'>    <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;amazon-ebs&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;access_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのアクセスキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSのシークレットキー&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;region&quot;</span><span class="p">:</span> <span class="s2">&quot;us-east-1&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;source_ami&quot;</span><span class="p">:</span> <span class="s2">&quot;ami-de0d9eb7&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;instance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;t1.micro&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ssh_username&quot;</span><span class="p">:</span> <span class="s2">&quot;ubuntu&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;ami_name&quot;</span><span class="p">:</span> <span class="s2">&quot;packer-example &quot;</span>
+</span><span class='line'>  <span class="p">}],</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nt">&quot;post-processors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;vagrant&quot;</span><span class="p">]</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>これを実行すると、boxファイルができがるので、vagrant box add で追加する。</p>
+
+<p>その後、vagrant init で取り込んだBox名を指定して実行する。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">#</span> <span class="err">-*-</span> <span class="err">mode:</span> <span class="err">ruby</span> <span class="err">-*-</span>
+</span><span class='line'><span class="err">#</span> <span class="err">vi:</span> <span class="err">set</span> <span class="err">ft=ruby</span> <span class="err">:</span>
+</span><span class='line'>
+</span><span class='line'><span class="err">Vagrant.configure(</span><span class="s2">&quot;2&quot;</span><span class="err">)</span> <span class="err">do</span> <span class="err">|config|</span>
+</span><span class='line'>    <span class="err">config.vm.box</span> <span class="err">=</span> <span class="s2">&quot;packer_test&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="err">config.vm.provider</span> <span class="err">:aws</span> <span class="err">do</span> <span class="err">|aws,</span> <span class="err">override|</span>
+</span><span class='line'>        <span class="err">aws.access_key_id</span> <span class="err">=</span> <span class="s2">&quot;AWSのアクセスキー&quot;</span>
+</span><span class='line'>        <span class="err">aws.secret_access_key</span> <span class="err">=</span> <span class="s2">&quot;AWSのシークレットキー&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="err">aws.keypair_name</span> <span class="err">=</span> <span class="s2">&quot;packer&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="err">override.ssh.username</span> <span class="err">=</span> <span class="s2">&quot;ubuntu&quot;</span>
+</span><span class='line'>        <span class="err">override.ssh.private_key_path</span> <span class="err">=</span> <span class="s2">&quot;~/packer_test/packer.pem&quot;</span>
+</span><span class='line'>    <span class="err">end</span>
+</span><span class='line'><span class="err">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>そして、vagrant up &mdash;provider=aws を実行すると、Packerで構築した環境が立ち上がる。</p>
+
+<p>あとはいつものようにvagrant sshすれば、ログインできる。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Chef Vagrant Handson]]></title>
+    <link href="http://reoring.github.io/blog/2013/07/20/chef-vagrant-handson/"/>
+    <updated>2013-07-20T22:20:00+09:00</updated>
+    <id>http://reoring.github.io/blog/2013/07/20/chef-vagrant-handson</id>
+    <content type="html"><![CDATA[<h1>前提条件</h1>
+
+<ul>
+<li>XCode
+
+<ul>
+<li>Command Line Tools</li>
+</ul>
+</li>
+</ul>
+
+
+<h1>VirtualBoxをインストール</h1>
+
+<p><a href="http://download.virtualbox.org/virtualbox/4.2.12/VirtualBox-4.2.12-84980-OSX.dmg">http://download.virtualbox.org/virtualbox/4.2.12/VirtualBox-4.2.12-84980-OSX.dmg</a></p>
+
+<h1>rbenv</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>git clone https://github.com/sstephenson/rbenv.git ~/.rbenv
+</span><span class='line'>git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+</span><span class='line'>
+</span><span class='line'>echo 'export PATH="$HOME/.rbenv/bin:$PATH"' &gt;&gt; ~/.bash_profile
+</span><span class='line'>echo 'eval "$(rbenv init -)"' &gt;&gt; ~/.bash_profile
+</span><span class='line'>
+</span><span class='line'>exec $SHELL -l
+</span><span class='line'>
+</span><span class='line'>rbenv install 1.9.3-p429
+</span><span class='line'>rbenv global  1.9.3-p429
+</span><span class='line'>rbenv rehash
+</span><span class='line'>
+</span><span class='line'>gem install bundler
+</span><span class='line'>
+</span><span class='line'>exec $SHELL -l</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>Vagrantのインストール</h1>
+
+<p><a href="http://www.vagrantup.com/">http://www.vagrantup.com/</a></p>
+
+<p><a href="http://downloads.vagrantup.com/tags/v1.2.2">http://downloads.vagrantup.com/tags/v1.2.2</a></p>
+
+<p>Vagrant-1.2.2.dmg をダウンロードしてインストール</p>
+
+<h1>Sahara plugin</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>git clone https://github.com/ryuzee/sahara.git
+</span><span class='line'>
+</span><span class='line'>cd sahara
+</span><span class='line'>
+</span><span class='line'>bundle install
+</span><span class='line'>bundle exec rake build
+</span><span class='line'>
+</span><span class='line'>vagrant plugin install pkg/sahara-0.0.14.gem</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>Chefのインストール</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>curl -L http://www.opscode.com/chef/install.sh | sudo bash
+</span><span class='line'>
+</span><span class='line'>% knife --version
+</span><span class='line'>Chef: 11.4.4</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>knife solo</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>gem i knife-solo --no-ri --no-rdoc
+</span><span class='line'>rbenv rehash</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>VagrantにBoxを追加</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant box add centos_63_x86_64 https://dl.dropbox.com/s/ajk7omgla8i4qi6/centos_63_x86_64_for_vb4.1.box</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>Vagrant_Momoxoを持ってくる</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>git clone git://github.com/reoring/Momoxo_Vagrant.git</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>vagrant-hostsupdater</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant plugin install vagrant-hostsupdater</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>vagrant up</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant up --no-provision
+</span><span class='line'>
+</span><span class='line'>vagrant sandbox on
+</span><span class='line'>
+</span><span class='line'>vagrant ssh-config --host momoxo &gt;&gt; ~/.ssh/config
+</span><span class='line'>
+</span><span class='line'>cd chef-repo
+</span><span class='line'>
+</span><span class='line'>knife solo prepare momoxo
+</span><span class='line'>knife solo cook momoxo
+</span><span class='line'>
+</span><span class='line'>失敗したら, vagrant sandbox rollback</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>serverspecでテストするよん</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>gem install serverspec
+</span><span class='line'>
+</span><span class='line'>rake spec
+</span><span class='line'>..............
+</span><span class='line'>
+</span><span class='line'>Finished in 0.49342 seconds
+</span><span class='line'>14 examples, 0 failures</span></code></pre></td></tr></table></div></figure>
+
+
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Vagrant Wheezy BoxをVeeWeeで作る]]></title>
+    <link href="http://reoring.github.io/blog/2013/07/20/veewee-wheezy/"/>
+    <updated>2013-07-20T20:54:00+09:00</updated>
+    <id>http://reoring.github.io/blog/2013/07/20/veewee-wheezy</id>
+    <content type="html"><![CDATA[<h2>構築した環境</h2>
+
+<ul>
+<li>Mac OS X 10.8.4</li>
+<li>XCode 4.6.3
+
+<ul>
+<li>事前にCommand Line Toolsはインストールしておく</li>
+</ul>
+</li>
+<li>rbenv</li>
+<li>Vagrant 1.2.2</li>
+<li>Debian Wheezy</li>
+</ul>
+
+
+<p>Vagrnat 1.0以降はパッケージで提供されています。gemからVagrantを入れる必要ありませんので、最新の場合はインストール部分を省略してください。</p>
+
+<p><a href="http://downloads.vagrantup.com/">Vagrantダウンロード一覧</a></p>
+
+<h1>VirtualBoxをインストール</h1>
+
+<p><a href="http://download.virtualbox.org/virtualbox/4.2.12/VirtualBox-4.2.12-84980-OSX.dmg">http://download.virtualbox.org/virtualbox/4.2.12/VirtualBox-4.2.12-84980-OSX.dmg</a></p>
+
+<h1>rbenv</h1>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>git clone https://github.com/sstephenson/rbenv.git ~/.rbenv
+</span><span class='line'>git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+</span><span class='line'>
+</span><span class='line'>echo 'export PATH="$HOME/.rbenv/bin:$PATH"' &gt;&gt; ~/.bash_profile
+</span><span class='line'>echo 'eval "$(rbenv init -)"' &gt;&gt; ~/.bash_profile
+</span><span class='line'>
+</span><span class='line'>exec $SHELL -l
+</span><span class='line'>
+</span><span class='line'>rbenv install 1.9.3-p429
+</span><span class='line'>rbenv global  1.9.3-p429
+</span><span class='line'>rbenv rehash
+</span><span class='line'>
+</span><span class='line'>gem install bundler
+</span><span class='line'>
+</span><span class='line'>exec $SHELL -l</span></code></pre></td></tr></table></div></figure>
+
+
+<h1>Vagrantのインストール</h1>
+
+<p><a href="http://www.vagrantup.com/">http://www.vagrantup.com/</a></p>
+
+<p><a href="http://downloads.vagrantup.com/tags/v1.2.2">http://downloads.vagrantup.com/tags/v1.2.2</a></p>
+
+<p>Vagrant-1.2.2.dmg をダウンロードしてインストール</p>
+
+<h2>VeeWeeのインストール</h2>
+
+<p>VeeWeeはBoxファイルのテンプレートを生成してくれるパッケージです。</p>
+
+<h3>Bundlerが入っていなければ入れる</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>gem install bundler</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>インストール</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>git clone git://github.com/jedi4ever/veewee.git
+</span><span class='line'>cd veewee
+</span><span class='line'>bundle install</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>仮想マシンの定義</h2>
+
+<p>Debianの環境を作成する。</p>
+
+<p>このコマンドはveeweeディレクトリ内で実行する。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>bundle exec veewee vbox define "wheezy" "Debian-7.1.0-amd64-netboot"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>そうするとdefinationsにテンプレートが作成されるので、それらを編集する。</p>
+
+<h3>definition.rb 編集</h3>
+
+<p>vim definitions/wheezy/definition.rb</p>
+
+<p>ミラーの参照先を変更</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>:iso_src =&gt; "http://ftp.riken.jp/Linux/debian/debian-cd/7.1.0/amd64/iso-cd/debian-7.1.0-amd64-netinst.iso",</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>仮想マシンのビルド</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>bundle exec veewee vbox build wheezy</span></code></pre></td></tr></table></div></figure>
+
+
+<p>しばらく待つ。途中でisoをダウンロードするか聞いてくるのでyesとする。</p>
+
+<p>自動的に仮想マシンが起動するので、またしばらく放置。</p>
+
+<p>プロンプトに</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>The box wheezy was built successfully!
+</span><span class='line'>
+</span><span class='line'>ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 7222 -l veewee 127.0.0.1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>と表示されていれば、このコマンドで vagrant というパスワードでsshログインが可能。</p>
+
+<p>この状態になったら一度落とします。</p>
+
+<h2>boxファイルへエクスポート</h2>
+
+<p>構築した仮想環境をboxファイルにエクスポートします。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>bundle exec veewee vbox export wheezy</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>仮想環境の登録と初期化</h2>
+
+<p>veeweeディレクトリから抜けて、仮想マシン用のディレクトリを作成します。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mkdir ~/box/wheezy</span></code></pre></td></tr></table></div></figure>
+
+
+<p>さて、いよいよ。登録して起動です。</p>
+
+<h3>エクスポートしたboxを登録します。</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant box add 'base_wheezy' 'wheezy.box'</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant init wheezy
+</span><span class='line'>
+</span><span class='line'># カレントディレクトリにVagrantfileが作成される
+</span><span class='line'>
+</span><span class='line'>vagrant up
+</span><span class='line'>
+</span><span class='line'>Bringing machine 'default' up with 'virtualbox' provider...
+</span><span class='line'>[default] Importing base box 'wheezy'...
+</span><span class='line'>[default] Matching MAC address for NAT networking...
+</span><span class='line'>[default] Setting the name of the VM...
+</span><span class='line'>[default] Clearing any previously set forwarded ports...
+</span><span class='line'>[default] Creating shared folders metadata...
+</span><span class='line'>[default] Clearing any previously set network interfaces...
+</span><span class='line'>[default] Preparing network interfaces based on configuration...
+</span><span class='line'>[default] Forwarding ports...
+</span><span class='line'>[default] -- 22 =&gt; 2222 (adapter 1)
+</span><span class='line'>[default] Booting VM...
+</span><span class='line'>[default] Waiting for VM to boot. This can take a few minutes.
+</span><span class='line'>[default] VM booted and ready for use!
+</span><span class='line'>[default] Configuring and enabling network interfaces...
+</span><span class='line'>[default] Mounting shared folders...
+</span><span class='line'>[default] -- /vagrant</span></code></pre></td></tr></table></div></figure>
+
+
+<p>起動が完了しました！</p>
+
+<h2>ログインしてみる</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant ssh
+</span><span class='line'>
+</span><span class='line'>[vagrant@localhost ~]$</span></code></pre></td></tr></table></div></figure>
+
+
+<p>プロンプトがでましたね。
+仮想マシンを起動したカレントディレクトリが、/vagrant として仮想マシン内から参照可能です。</p>
+
+<h2>仮想マシンの停止</h2>
+
+<h3>作業情報を保持したまま停止</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant halt</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>作業情報をすべて破棄</h3>
+
+<p>この方法は仮想マシンのファイルはすべて破棄されます。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>vagrant destroy</span></code></pre></td></tr></table></div></figure>
+
+
+<p>一度boxファイルができてしまえば vagrant コマンドだけで、すぐに構築した仮想マシンをすぐに各環境で立ち上げることができます。</p>
+
+<p>複数の環境を自動的にテストする目的には特に有用かと思います。</p>
+
+<h2>Appendix</h2>
+
+<p>公開されている box 一覧
+<a href="http://www.vagrantbox.es/">http://www.vagrantbox.es/</a></p>
+
+<p>今回作ったboxファイル</p>
+
+<p> <a href="https://www.dropbox.com/s/ps447hpvfmdjwoy/wheezy.box">https://www.dropbox.com/s/ps447hpvfmdjwoy/wheezy.box</a></p>
+
+<h1>Chef ＋ Vagrant入門（ハンズオン）やります!!</h1>
+
+<p><a href="http://atnd.org/events/40871/">ATNDはこちら</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[NFS CookbookをWheezyに対応させる]]></title>
+    <link href="http://reoring.github.io/blog/2013/07/19/nfs-cookbook/"/>
+    <updated>2013-07-19T19:36:00+09:00</updated>
+    <id>http://reoring.github.io/blog/2013/07/19/nfs-cookbook</id>
+    <content type="html"><![CDATA[<p>NFSのCookbookがGitHubで公開されているのだけど、Wheezyで実行するとportmapあたりでエラーになる。これはWheezyではportmapはrpcbindというサービスに変更されているから発生する。</p>
+
+<p><a href="https://github.com/atomic-penguin/cookbook-nfs">https://github.com/atomic-penguin/cookbook-nfs</a></p>
+
+<p>forkしたレポジトリ
+<a href="https://github.com/reoring/cookbook-nfs">https://github.com/reoring/cookbook-nfs</a></p>
+
+<h2>Berksfileにcookbookの場所を追加</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">site</span> <span class="ss">:opscode</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">metadata</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">cookbook</span> <span class="s1">&#39;nfs&#39;</span><span class="p">,</span> <span class="ss">git</span><span class="p">:</span> <span class="s1">&#39;git://github.com/reoring/cookbook-nfs.git&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Cookbookを取得しなおす</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">rm</span> <span class="no">Berksfile</span><span class="o">.</span><span class="n">lock</span>
+</span><span class='line'><span class="n">berks</span> <span class="n">install</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>行った変更</h2>
+
+<p>attributes/default.rb に下記変更を追加。
+nodeのplatform_versionでOSのバージョンが取得できるので、それを使って判断する。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="c1"># Debian 7.0+</span>
+</span><span class='line'><span class="k">if</span> <span class="n">node</span><span class="o">[</span><span class="s1">&#39;platform&#39;</span><span class="o">]</span> <span class="o">==</span> <span class="s2">&quot;debian&quot;</span> <span class="ow">and</span> <span class="n">node</span><span class="o">[</span><span class="s1">&#39;platform_version&#39;</span><span class="o">].</span><span class="n">to_i</span> <span class="o">&gt;=</span> <span class="mi">7</span>
+</span><span class='line'>    <span class="n">default</span><span class="o">[</span><span class="s1">&#39;nfs&#39;</span><span class="o">][</span><span class="s1">&#39;service&#39;</span><span class="o">][</span><span class="s1">&#39;lock&#39;</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;nfs-common&quot;</span>
+</span><span class='line'>    <span class="n">default</span><span class="o">[</span><span class="s1">&#39;nfs&#39;</span><span class="o">][</span><span class="s1">&#39;service&#39;</span><span class="o">][</span><span class="s1">&#39;portmap&#39;</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;rpcbind&quot;</span>
+</span><span class='line'>    <span class="n">default</span><span class="o">[</span><span class="s1">&#39;nfs&#39;</span><span class="o">][</span><span class="s1">&#39;packages&#39;</span><span class="o">]</span> <span class="o">=</span> <span class="sx">%w{ nfs-common rpcbind }</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>本家にプルリクしたら既に同様のプルリクがあった…orz</p>
+
+<h2>nodeってなに？</h2>
+
+<p>node変数には、Chef Soloを実行している環境の様々な変数が入っています。
+これは Ohai というミドルウェアが頑張って収集していきているデータです。</p>
+
+<p>その他にも、attriburesで設定した変数などもnodeに入ってきます。</p>
+
+<p>platform_versionの他にも、下記の情報が入っています。</p>
+
+<ul>
+<li>node[&lsquo;platform&rsquo;]</li>
+<li>node[&lsquo;ipaddress&rsquo;]</li>
+<li>node[&lsquo;macaddress&rsquo;]</li>
+<li>node[&lsquo;fqdn&rsquo;]</li>
+<li>node[&lsquo;hostname&rsquo;]</li>
+<li>node[&lsquo;domain&rsquo;]</li>
+<li>node[&lsquo;recipes&rsquo;]</li>
+<li>node[&lsquo;roles&rsquo;]</li>
+<li>node[&lsquo;ohai_time&rsquo;]</li>
+</ul>
+
+
+<p>詳しくは、Opscodeのサイトに書いてあります。<a href="http://docs.opscode.com/ohai.html">http://docs.opscode.com/ohai.html</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Octpressを初めてみました]]></title>
+    <link href="http://reoring.github.io/blog/2013/07/19/test2/"/>
+    <updated>2013-07-19T19:16:00+09:00</updated>
+    <id>http://reoring.github.io/blog/2013/07/19/test2</id>
+    <content type="html"><![CDATA[<p>BlogをOctpressで書き始めてみる</p>
+
+<p><a href="http://octopress.org/">http://octopress.org/</a></p>
+
+<h2>記事作成</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>bundle <span class="nb">exec </span>rake new_post
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>プレビュー</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>bundle <span class="nb">exec </span>rake preview
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>デプロイ</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>bundle <span class="nb">exec </span>rake deploy
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>コメント欄をつける</h2>
+
+<p>_config.ymlに下記行を追加</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">disqus_short_name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">reoring</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>はてなブックマークをシェア部分に追加</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='html'><span class='line'> <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">&quot;float:left&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>     <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">&quot;http://b.hatena.ne.jp/entry/{{ page.url }}&quot;</span> <span class="na">class=</span><span class="s">&quot;hatena-bookmark-button&quot;</span> <span class="na">data-hatena-bookmark-layout=</span><span class="s">&quot;standard&quot;</span> <span class="na">title=</span><span class="s">&quot;このエントリーをはてなブックマークに追加&quot;</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">&quot;http://b.st-hatena.com/images/entry-button/button-only.gif&quot;</span> <span class="na">alt=</span><span class="s">&quot;このエントリーをはてなブックマークに追加&quot;</span> <span class="na">width=</span><span class="s">&quot;20&quot;</span> <span class="na">height=</span><span class="s">&quot;20&quot;</span> <span class="na">style=</span><span class="s">&quot;border: none;&quot;</span> <span class="nt">/&gt;&lt;/a&gt;</span>
+</span><span class='line'>   <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;http://b.st-hatena.com/js/bookmark_button.js&quot;</span> <span class="na">charset=</span><span class="s">&quot;utf-8&quot;</span> <span class="na">async=</span><span class="s">&quot;async&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+</span><span class='line'> <span class="nt">&lt;/div&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Octpressのテンプレートエンジンのプレースホルダーをエスケープする</h2>
+
+<p>Octpressでは、 {{ page.url }}  といった変数が使えるのですが、これそのものを記事にしたいときは、&#8221;&ldquo;でエスケープします。</p>
 ]]></content>
   </entry>
   
